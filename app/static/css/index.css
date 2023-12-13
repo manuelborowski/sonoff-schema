@@ -1,0 +1,28 @@
+.clickable-table, .clickable-table td, .clickable-table th {
+   border: 1px solid black;
+  border-collapse: collapse;
+}
+
+.clickable-table .clickable:hover, .clickable-table .green-red-aan-uit:hover, .clickable-table .green-white:hover, .clickable-table .input-hour-min:hover{
+    cursor: pointer;
+}
+
+.clickable-table .green-bg {
+    background: lightgreen;
+}
+
+.clickable-table .green-bg-fg {
+    background: lightgreen;
+    color: lightgreen;
+}
+
+.clickable-table .white-bg-fg {
+    background: white;
+    color: white;
+}
+
+.clickable-table .red-bg {
+    background: lightcoral;
+}
+
+
