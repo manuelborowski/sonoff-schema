@@ -4,6 +4,7 @@ from flask import Flask
 from flask_socketio import SocketIO
 
 # 0.1: initial version
+# 0.2: second version
 
 app = Flask(__name__, instance_relative_config=True, template_folder='presentation/template/')
 
@@ -26,6 +27,9 @@ dbase.close()
 
 from .presentation.view import index
 app.register_blueprint(index.bp)
+
+from .application.scheduler import scheduler_start
+scheduler_start(dbase)
 
 
 def populate_database():

@@ -4,108 +4,115 @@ window.addEventListener('DOMContentLoaded', (event) => {
 });
 
 
-
-class SonoffTable {
-    constructor(table) {
-        var labels = ["id", "loc", "act", "ip", "schema"]
-        var properties = ["sonoff_id", "location", "active", "ip", "schemes"]
-        var actions = ["", "input-locatie", "green-red-aan-uit", "", "input-schema"]
-        for (var i = 0; i < labels.length; i++) labels[i] = `<td>${labels[i]}</td>`
-        for (var i = 0; i < sonoffs.length; i++) {
-            for (var j = 0; j < properties.length; j++) {
-                labels[j] += `<td class="${actions[j]}" data-sonoff_id="${properties[j]}-${sonoffs[i].id}">${sonoffs[i][properties[j]]}</td>`;
+class TableBase {
+    constructor(table_data) {
+        for (var i = 0; i < table_data.labels.length; i++) table_data.labels[i] = `<td>${table_data.labels[i]}</td>`
+        for (var i = 0; i < table_data.data.length; i++) {
+            for (var j = 0; j < table_data.properties.length; j++) {
+                table_data.labels[j] += `<td class="${table_data.types[j]}" data-${table_data.data_label}="${table_data.properties[j]}-${table_data.data[i].id}">${table_data.data[i][table_data.properties[j]]}</td>`;
             }
         }
         var table_content = "";
-        for (var i = 0; i < labels.length; i++) table_content += `<tr>${labels[i]}</tr>`;
-        table.innerHTML = table_content
-        new Clickable(table, "sonoff_id", "sonoffstate");
-    }
-}
+        for (var i = 0; i < table_data.labels.length; i++) table_content += `<tr>${table_data.labels[i]}</tr>`;
+        table_data.html_table.innerHTML = table_content
 
-class SchemeTable {
-    constructor(table) {
-        var labels = ["act", "ma", "di", "wo", "do", "vr", "za", "zo", "aan", "uit", "aan", "uit"]
-        var properties = ["active", "mon", "tue", "wed", "thu", "fri", "sat", "sun", "on0", "off0", "on1", "off1"]
-        var actions = ["green-red-aan-uit", "green-white", "green-white", "green-white", "green-white", "green-white", "green-white", "green-white", "input-hour-min", "input-hour-min", "input-hour-min", "input-hour-min"]
-        for (var i=0; i < labels.length; i++) labels[i] = `<td>${labels[i]}</td>`
-        for (var i=0; i < schemes.length; i++) {
-            for(var j=0; j < properties.length; j++) {
-                labels[j] += `<td class="${actions[j]}" data-scheme_id="${properties[j]}-${schemes[i].id}">${schemes[i][properties[j]]}</td>`;
-            }
-        }
-        var table_content = "<tr><th>nr</th><th colspan='2'>1</th><th colspan='2'>2</th><th colspan='2'>3</th><th colspan='2'>4</th></tr>";
-        for(var i=0; i < labels.length; i++) table_content += `<tr>${labels[i]}</tr>`;
-        table.innerHTML = table_content
-        new Clickable(table, "scheme_id", "schemestate");
-    }
-}
+        this.table_data = table_data;
 
-class Clickable {
-    constructor(table, data_label, io_namespace) {
-        this.socket = io("/" + io_namespace);
+        this.socket = io("/" + table_data.sio_namespace);
         this.socket.on("json", (data) => {
-            const td = document.querySelector(`[data-${this.data_label}="${data.id}"]`);
-            if (td.classList.contains("green-red-aan-uit")) {
-                this.set_green_red_aan_uit_state(td, data.value);
-            }
-            if (td.classList.contains("green-white")) {
-                this.set_green_white_state(td, data.value);
-            }
-            if (td.classList.contains("input-locatie") || td.classList.contains("input-schema") || td.classList.contains("input-hour-min")) {
-                this.set_input_text(td, data.value);
-            }
+            const td = document.querySelector(`[data-${this.table_data.data_label}="${data.id}"]`);
+            this.set_cell_content_bg(td, data.value);
         });
-        this.data_label = data_label;
-        table.addEventListener("click", e => {
+        table_data.html_table.addEventListener("click", e => {
             const td = e.target;
-            if (td.classList.contains("green-red-aan-uit")) {
-                this.socket.emit("json", {id: td.dataset[this.data_label], value: td.innerHTML !== "AAN"})
+            if (td.classList.contains("green-white") || td.classList.contains("green-red-aan-uit")) {
+                this.socket.emit("json", {id: td.dataset[this.table_data.data_label], value: td.innerHTML === "AAN"})
             }
-            if (td.classList.contains("green-white")) {
-                this.socket.emit("json", {id: td.dataset[this.data_label], value: td.innerHTML !== "true"})
-            }
-            if (td.classList.contains("input-locatie")) {
+            else if (td.classList.contains("input-locatie")) {
                 let text = prompt("Geef een locatie");
-                this.socket.emit("json", {id: td.dataset[this.data_label], value: text})
+                this.socket.emit("json", {id: td.dataset[this.table_data.data_label], value: text})
             }
-            if (td.classList.contains("input-schema")) {
-                 let text = prompt("Geef één of meerdere locaties, gescheiden door een komma");
-                this.socket.emit("json", {id: td.dataset[this.data_label], value: text.split(",").map(Number)})
+            else if (td.classList.contains("input-schema")) {
+                let text = prompt("Geef één of meerdere locaties, gescheiden door een komma");
+                this.socket.emit("json", {id: td.dataset[this.table_data.data_label], value: text.split(",").map(Number)})
             }
-            if (td.classList.contains("input-hour-min")) {
-                 let text = prompt("Geef uur en minuut in formaat HH:MM");
-                this.socket.emit("json", {id: td.dataset[this.data_label], value: text})
-            }
+            else if (td.classList.contains("input-hour-min")) {
+                let text = prompt("Geef uur en minuut in formaat HH:MM");
+                try {
+                    let [h, m] = text.split(":");
+                    h = parseInt(h);
+                    m = parseInt(m);
+                    if (h >= 0 && h < 24 && m >= 0 && m < 60)
+                        this.socket.emit("json", {id: td.dataset[this.table_data.data_label], value: text})
+                    else
+                        alert("Verkeerd formaat, probeer nogmaals")
+                } catch (e) {
+                    alert("Verkeerd formaat, probeer nogmaals")
+                }
+            } else
+                this.socket.emit("json", {id: td.dataset[this.table_data.data_label], value: td.innerHTML})
+
         })
 
-        for(var y=0; y < table.rows.length; y++) {
-            for(var x=0; x < table.rows[y].cells.length; x++) {
-                const cell = table.rows[y].cells[x];
-                if (cell.classList.contains("green-red-aan-uit")) {
-                    this.set_green_red_aan_uit_state(cell, cell.innerHTML === "true");
-                }
-                if (cell.classList.contains("green-white")) {
-                    this.set_green_white_state(cell, cell.innerHTML === "true");
-                }
+        for (var y = 0; y < table_data.html_table.rows.length; y++) {
+            for (var x = 0; x < table_data.html_table.rows[y].cells.length; x++) {
+                const td = table_data.html_table.rows[y].cells[x];
+                if (td.classList.contains("green-white") || td.classList.contains("green-red-aan-uit"))
+                    this.set_cell_content_bg(td, td.innerHTML === "true")
+                else
+                    this.set_cell_content_bg(td, td.innerHTML)
             }
         }
     }
 
-    set_green_red_aan_uit_state(td, state) {
-        td.innerHTML = state ? "AAN" : "UIT";
-        td.classList.remove(state ? "red-bg" : "green-bg");
-        td.classList.add(state ? "green-bg" : "red-bg");
+    set_cell_content_bg(td, value) {
+        if (td.classList.contains("off-on-auto")) {
+            // const add_bg_class = {"UIT": "red-bg", "AAN": "green-bg", "AUTO": "orange-bg"};
+            // const bg_classes = ["red-bg", "green-bg", "orange-bg"];
+            td.innerHTML = value;
+            // for (let i = 0; i < bg_classes.length; i++) if (td.classList.contains(bg_classes[i])) td.classList.remove(bg_classes[i])
+            // td.classList.add(add_bg_class[state]);
+        } else if (td.classList.contains("green-red-aan-uit")) {
+            td.innerHTML = value ? "AAN" : "UIT";
+            td.classList.remove(value ? "red-bg" : "green-bg");
+            td.classList.add(value ? "green-bg" : "red-bg");
+        } else if (td.classList.contains("green-white")) {
+            td.innerHTML = value ? "AAN" : "UIT";
+            td.classList.remove(value ? "white-bg-fg" : "green-bg-fg");
+            td.classList.add(value ? "green-bg-fg" : "white-bg-fg");
+        } else
+            td.innerHTML = value;
     }
-
-    set_green_white_state(td, state) {
-        td.innerHTML = state ? "true" : "false";
-        td.classList.remove(state ? "white-bg-fg" : "green-bg-fg");
-        td.classList.add(state ? "green-bg-fg" : "white-bg-fg");
-    }
-
-    set_input_text(td, value) {
-        td.innerHTML = value
-    }
-
 }
+
+class SonoffTable extends TableBase {
+    constructor(table) {
+        const table_data = {
+            labels: ["id", "loc", "mode", "ip", "schema"],
+            properties: ["sonoff_id", "location", "mode", "ip", "schemes"],
+            types: ["", "input-locatie", "off-on-auto", "", "input-schema"],
+            data: sonoffs,
+            html_table: table,
+            data_label: "sonoff_id",
+            sio_namespace: "sonoffstate"
+        }
+        super(table_data);
+    }
+}
+
+class SchemeTable extends TableBase {
+    constructor(table) {
+        const table_data = {
+            labels: ["act", "ma", "di", "wo", "do", "vr", "za", "zo", "aan", "uit", "aan", "uit"],
+            properties: ["active", "mon", "tue", "wed", "thu", "fri", "sat", "sun", "on0", "off0", "on1", "off1"],
+            types: ["green-red-aan-uit", "green-white", "green-white", "green-white", "green-white", "green-white", "green-white", "green-white", "input-hour-min", "input-hour-min", "input-hour-min", "input-hour-min"],
+            data: schemes,
+            html_table: table,
+            data_label: "scheme_id",
+            sio_namespace: "schemestate"
+        }
+        super(table_data);
+    }
+}
+
+

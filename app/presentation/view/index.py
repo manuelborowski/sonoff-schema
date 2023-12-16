@@ -21,7 +21,7 @@ def hello():
 @socketio.on('json', namespace="/sonoffstate")
 def handle_json(data):
     try:
-        ASonoff.set_sonoff_property(data["id"], data["value"])
+        ASonoff.update_property(data["id"], data["value"])
             # send({"id": data["id"], "value": data["value"]}, json=True, broadcast=True, namespace="/sonoffstate")
         # time.sleep(3)
         # send({"id": data["id"], "value": not data["value"]}, json=True, broadcast=True, namespace="/sonoffstate")
@@ -39,7 +39,7 @@ ASonoff.subscribe_set_property("*", broadcast_changed_property, "sonoffstate")
 @socketio.on('json', namespace="/schemestate")
 def handle_json(data):
     try:
-        AScheme.set_property(data["id"], data["value"])
+        AScheme.update_property(data["id"], data["value"])
             # send({"id": data["id"], "value": data["value"]}, json=True, broadcast=True, namespace="/schemestate")
         # time.sleep(3)
         # send({"id": data["id"], "value": not data["value"]}, json=True, broadcast=True, namespace="/schemestate")

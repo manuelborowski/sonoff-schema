@@ -26,7 +26,7 @@ class BaseProperties():
         self.model = model
         self.subscribed_properties = {}
 
-    def set_property(self, id, property, value):
+    def set(self, id, property, value):
         item = self.model.select().where(self.model.id == id).get()
         old_value = getattr(item, property)
         setattr(item, property, value)
@@ -38,7 +38,7 @@ class BaseProperties():
         return True
 
     # if property is "*" => all properties
-    def subscribe_set_property(self, property, cb, opaque):
+    def subscribe_set(self, property, cb, opaque):
         if property in self.subscribed_properties:
             self.subscribed_properties[property].append((cb, opaque))
         else:

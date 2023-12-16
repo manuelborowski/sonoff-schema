@@ -5,6 +5,7 @@ CREATE TABLE sonoff (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       sonoff_id TEXT UNIQUE NOT NULL,
       location TEXT default '',
+      mode TEXT default '',
       active INTEGER default 0,
       schemes TEXT default ''
 );
