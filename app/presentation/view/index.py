@@ -18,13 +18,10 @@ def hello():
     return render_template("index.html", sonoffs=sonoffs, schemes=schemes)
 
 
-@socketio.on('json', namespace="/sonoffstate")
+@socketio.on('json', namespace="/sonoffupdate")
 def handle_json(data):
     try:
         ASonoff.update_property(data["id"], data["value"])
-            # send({"id": data["id"], "value": data["value"]}, json=True, broadcast=True, namespace="/sonoffstate")
-        # time.sleep(3)
-        # send({"id": data["id"], "value": not data["value"]}, json=True, broadcast=True, namespace="/sonoffstate")
     except Exception as e:
         print(e)
 
@@ -33,17 +30,14 @@ def broadcast_changed_property(id, property, value, old_value, opaque):
     send({"id": f"{property}-{id}", "value": value}, json=True, broadcast=True, namespace=f"/{opaque}")
 
 
-ASonoff.subscribe_set_property("*", broadcast_changed_property, "sonoffstate")
+ASonoff.subscribe_set_property("*", broadcast_changed_property, "sonoffupdate")
 
 
-@socketio.on('json', namespace="/schemestate")
+@socketio.on('json', namespace="/schemeupdate")
 def handle_json(data):
     try:
         AScheme.update_property(data["id"], data["value"])
-            # send({"id": data["id"], "value": data["value"]}, json=True, broadcast=True, namespace="/schemestate")
-        # time.sleep(3)
-        # send({"id": data["id"], "value": not data["value"]}, json=True, broadcast=True, namespace="/schemestate")
     except Exception as e:
         print(e)
 
-AScheme.subscribe_set_property("*", broadcast_changed_property, "schemestate")
+AScheme.subscribe_set_property("*", broadcast_changed_property, "schemeupdate")

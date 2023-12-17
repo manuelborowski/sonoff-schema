@@ -6,6 +6,7 @@ window.addEventListener('DOMContentLoaded', (event) => {
 
 class TableBase {
     constructor(table_data) {
+        // Create and populate table
         for (var i = 0; i < table_data.labels.length; i++) table_data.labels[i] = `<td>${table_data.labels[i]}</td>`
         for (var i = 0; i < table_data.data.length; i++) {
             for (var j = 0; j < table_data.properties.length; j++) {
@@ -15,28 +16,44 @@ class TableBase {
         var table_content = "";
         for (var i = 0; i < table_data.labels.length; i++) table_content += `<tr>${table_data.labels[i]}</tr>`;
         table_data.html_table.innerHTML = table_content
+        for (var y = 0; y < table_data.html_table.rows.length; y++) {
+            for (var x = 0; x < table_data.html_table.rows[y].cells.length; x++) {
+                const td = table_data.html_table.rows[y].cells[x];
+                if (td.classList.contains("green-white") || td.classList.contains("green-red-aan-uit"))
+                    this.set_cell_content_bg(td, td.innerHTML === "true")
+                else
+                    this.set_cell_content_bg(td, td.innerHTML)
+            }
+        }
 
         this.table_data = table_data;
-
         this.socket = io("/" + table_data.sio_namespace);
+        this.extra_cell_updates = {}
+
+        // Receive table update events from server
         this.socket.on("json", (data) => {
             const td = document.querySelector(`[data-${this.table_data.data_label}="${data.id}"]`);
-            this.set_cell_content_bg(td, data.value);
+            if (td)
+                this.set_cell_content_bg(td, data.value);
+            else if (this.extra_cell_updates) {
+                const [event, id] = data.id.split("-");
+                if (this.extra_cell_updates[event]) {
+                    this.set_cell_update(this.extra_cell_updates[event].row, id, this.extra_cell_updates[event].type, data.value);
+                }
+            }
         });
+        // Send table update events to server
         table_data.html_table.addEventListener("click", e => {
             const td = e.target;
             if (td.classList.contains("green-white") || td.classList.contains("green-red-aan-uit")) {
                 this.socket.emit("json", {id: td.dataset[this.table_data.data_label], value: td.innerHTML === "AAN"})
-            }
-            else if (td.classList.contains("input-locatie")) {
+            } else if (td.classList.contains("input-locatie")) {
                 let text = prompt("Geef een locatie");
                 this.socket.emit("json", {id: td.dataset[this.table_data.data_label], value: text})
-            }
-            else if (td.classList.contains("input-schema")) {
+            } else if (td.classList.contains("input-schema")) {
                 let text = prompt("Geef één of meerdere locaties, gescheiden door een komma");
                 this.socket.emit("json", {id: td.dataset[this.table_data.data_label], value: text.split(",").map(Number)})
-            }
-            else if (td.classList.contains("input-hour-min")) {
+            } else if (td.classList.contains("input-hour-min")) {
                 let text = prompt("Geef uur en minuut in formaat HH:MM");
                 try {
                     let [h, m] = text.split(":");
@@ -53,25 +70,15 @@ class TableBase {
                 this.socket.emit("json", {id: td.dataset[this.table_data.data_label], value: td.innerHTML})
 
         })
-
-        for (var y = 0; y < table_data.html_table.rows.length; y++) {
-            for (var x = 0; x < table_data.html_table.rows[y].cells.length; x++) {
-                const td = table_data.html_table.rows[y].cells[x];
-                if (td.classList.contains("green-white") || td.classList.contains("green-red-aan-uit"))
-                    this.set_cell_content_bg(td, td.innerHTML === "true")
-                else
-                    this.set_cell_content_bg(td, td.innerHTML)
-            }
-        }
     }
 
     set_cell_content_bg(td, value) {
         if (td.classList.contains("off-on-auto")) {
-            // const add_bg_class = {"UIT": "red-bg", "AAN": "green-bg", "AUTO": "orange-bg"};
-            // const bg_classes = ["red-bg", "green-bg", "orange-bg"];
             td.innerHTML = value;
-            // for (let i = 0; i < bg_classes.length; i++) if (td.classList.contains(bg_classes[i])) td.classList.remove(bg_classes[i])
-            // td.classList.add(add_bg_class[state]);
+            if (value === "AUTO") {
+                td.classList.remove("red-bg", "green-bg");
+                td.classList.add("orange-bg");
+            }
         } else if (td.classList.contains("green-red-aan-uit")) {
             td.innerHTML = value ? "AAN" : "UIT";
             td.classList.remove(value ? "red-bg" : "green-bg");
@@ -83,6 +90,24 @@ class TableBase {
         } else
             td.innerHTML = value;
     }
+
+    // event: arbitrary event
+    // type: what needs to be done when the event is received
+    // row: apply on what row
+    subscribe_cell_update(event, type, row) {
+        this.extra_cell_updates[event] = {type, row};
+    }
+
+    set_cell_update(row, id, type, value) {
+        const td = document.querySelector(`[data-${this.table_data.data_label}="${row}-${id}"]`);
+        console.log(td, id, type, value)
+        if(type === "red-green-bg") {
+            td.classList.remove("red-bg", "green-bg", "orange-bg");
+            td.classList.add(value ? "green-bg" : "red-bg");
+        }
+
+    }
+
 }
 
 class SonoffTable extends TableBase {
@@ -94,9 +119,11 @@ class SonoffTable extends TableBase {
             data: sonoffs,
             html_table: table,
             data_label: "sonoff_id",
-            sio_namespace: "sonoffstate"
+            sio_namespace: "sonoffupdate",
         }
         super(table_data);
+
+        this.subscribe_cell_update("sonoffstate", "red-green-bg", "mode")
     }
 }
 
@@ -109,7 +136,7 @@ class SchemeTable extends TableBase {
             data: schemes,
             html_table: table,
             data_label: "scheme_id",
-            sio_namespace: "schemestate"
+            sio_namespace: "schemeupdate"
         }
         super(table_data);
     }

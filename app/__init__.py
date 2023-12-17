@@ -5,6 +5,7 @@ from flask_socketio import SocketIO
 
 # 0.1: initial version
 # 0.2: second version
+# 0.3: introduced arbitrary events to update cells
 
 app = Flask(__name__, instance_relative_config=True, template_folder='presentation/template/')
 

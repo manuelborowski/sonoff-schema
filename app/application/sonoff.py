@@ -18,6 +18,8 @@ class ASonoff():
         if property == "mode":
             next_states = {"UIT": "AAN", "AAN": "AUTO", "AUTO": "UIT"}
             value = next_states[value]
+            if value != "AUTO":
+                dsonoff.properties.set(id, "active", value == "AAN")
         return dsonoff.properties.set(id, property, value)
 
     @classmethod
