@@ -14,6 +14,7 @@ class TableBase {
             }
         }
         var table_content = "";
+        if (table_data.header) table_content += table_data.header;
         for (var i = 0; i < table_data.labels.length; i++) table_content += `<tr>${table_data.labels[i]}</tr>`;
         table_data.html_table.innerHTML = table_content
         for (var y = 0; y < table_data.html_table.rows.length; y++) {
@@ -50,6 +51,9 @@ class TableBase {
             } else if (td.classList.contains("input-locatie")) {
                 let text = prompt("Geef een locatie");
                 this.socket.emit("json", {id: td.dataset[this.table_data.data_label], value: text})
+            } else if (td.classList.contains("input-sonoff-id")) {
+                let text = prompt("Geef een sonoff id (e.g. sonoff21)");
+                this.socket.emit("json", {id: td.dataset[this.table_data.data_label], value: text})
             } else if (td.classList.contains("input-schema")) {
                 let text = prompt("Geef één of meerdere locaties, gescheiden door een komma");
                 this.socket.emit("json", {id: td.dataset[this.table_data.data_label], value: text.split(",").map(Number)})
@@ -62,9 +66,9 @@ class TableBase {
                     if (h >= 0 && h < 24 && m >= 0 && m < 60)
                         this.socket.emit("json", {id: td.dataset[this.table_data.data_label], value: text})
                     else
-                        alert("Verkeerd formaat, probeer nogmaals")
+                        this.socket.emit("json", {id: td.dataset[this.table_data.data_label], value: ""})
                 } catch (e) {
-                    alert("Verkeerd formaat, probeer nogmaals")
+                    this.socket.emit("json", {id: td.dataset[this.table_data.data_label], value: ""})
                 }
             } else
                 this.socket.emit("json", {id: td.dataset[this.table_data.data_label], value: td.innerHTML})
@@ -100,10 +104,11 @@ class TableBase {
 
     set_cell_update(row, id, type, value) {
         const td = document.querySelector(`[data-${this.table_data.data_label}="${row}-${id}"]`);
-        console.log(td, id, type, value)
         if(type === "red-green-bg") {
             td.classList.remove("red-bg", "green-bg", "orange-bg");
             td.classList.add(value ? "green-bg" : "red-bg");
+        } else if(type === "text") {
+            td.innerHTML = value;
         }
 
     }
@@ -115,7 +120,7 @@ class SonoffTable extends TableBase {
         const table_data = {
             labels: ["id", "loc", "mode", "ip", "schema"],
             properties: ["sonoff_id", "location", "mode", "ip", "schemes"],
-            types: ["", "input-locatie", "off-on-auto", "", "input-schema"],
+            types: ["input-sonoff-id", "input-locatie", "off-on-auto", "", "input-schema"],
             data: sonoffs,
             html_table: table,
             data_label: "sonoff_id",
@@ -124,6 +129,7 @@ class SonoffTable extends TableBase {
         super(table_data);
 
         this.subscribe_cell_update("sonoffstate", "red-green-bg", "mode")
+        this.subscribe_cell_update("sonoffip", "text", "ip")
     }
 }
 
@@ -136,7 +142,8 @@ class SchemeTable extends TableBase {
             data: schemes,
             html_table: table,
             data_label: "scheme_id",
-            sio_namespace: "schemeupdate"
+            sio_namespace: "schemeupdate",
+            header: "<tr><th>schema</th><th colspan='2'>1</th><th colspan='2'>2</th><th colspan='2'>3</th><th colspan='2'>4</th> </tr>"
         }
         super(table_data);
     }

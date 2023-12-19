@@ -1,9 +1,14 @@
 from peewee import Model
+from playhouse.shortcuts import ThreadSafeDatabaseMetadata
 from app import dbase, app
 # import sqlite3
 #
 # import click
 
+#logging on file level
+import logging
+from app import top_log_handle
+log = logging.getLogger(f"{top_log_handle}.{__name__}")
 
 @app.before_request
 def before_request():
@@ -19,6 +24,7 @@ def after_request(response):
 class BaseModel(Model):
     class Meta:
         database = dbase
+        model_metadata_class = ThreadSafeDatabaseMetadata
 
 
 class BaseProperties():
@@ -27,6 +33,7 @@ class BaseProperties():
         self.subscribed_properties = {}
 
     def set(self, id, property, value):
+        id = int(id)
         item = self.model.select().where(self.model.id == id).get()
         old_value = getattr(item, property)
         setattr(item, property, value)
@@ -43,34 +50,3 @@ class BaseProperties():
             self.subscribed_properties[property].append((cb, opaque))
         else:
             self.subscribed_properties[property] = [(cb, opaque)]
-#
-#
-# def get_db():
-#     if 'db' not in g:
-#         g.db = sqlite3.connect(current_app.config['DATABASE'], detect_types=sqlite3.PARSE_DECLTYPES)
-#         g.db.row_factory = sqlite3.Row
-#     return g.db
-#
-#
-# def close_db(e=None):
-#     db = g.pop('db', None)
-#     if db is not None:
-#         db.close()
-#
-#
-# def init_db():
-#     db = get_db()
-#     with current_app.open_resource('schema.sql') as f:
-#         db.executescript(f.read().decode('utf8'))
-#
-#
-# @click.command('init-db')
-# def init_db_command():
-#     """Clear the existing data and create new tables."""
-#     init_db()
-#     click.echo('Initialized the database.')
-#
-#
-# def init_app(app):
-#     app.teardown_appcontext(close_db)
-#     app.cli.add_command(init_db_command)

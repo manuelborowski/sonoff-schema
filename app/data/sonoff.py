@@ -9,8 +9,8 @@ class Sonoff(BaseModel):
         off = "UIT"
         auto = "AUTO"
 
-    sonoff_id = CharField()
-    location = CharField()
+    sonoff_id = CharField(default="")
+    location = CharField(default="")
     mode = CharField(default=State.off)
     active = BooleanField(default=False)
     schemes = JSONField()

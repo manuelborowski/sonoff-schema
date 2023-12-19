@@ -1,13 +1,31 @@
 from peewee import SqliteDatabase
-import os
+import logging, logging.handlers, os, sys
 from flask import Flask
 from flask_socketio import SocketIO
 
 # 0.1: initial version
 # 0.2: second version
 # 0.3: introduced arbitrary events to update cells
+# 0.4: added logging.  Implemented scheduler and sonoff-loop
+
+
+version = "0.4"
+
+#  enable logging
+top_log_handle = "sonoff"
+log = logging.getLogger(f"{top_log_handle}.{__name__}")
+LOG_FILENAME = os.path.join(sys.path[0], f'app/static/log/sonoff.txt')
+log_level = getattr(logging, 'INFO')
+log.setLevel(log_level)
+log_handler = logging.handlers.RotatingFileHandler(LOG_FILENAME, maxBytes=1024 * 1024, backupCount=20)
+log_formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(name)s - %(message)s')
+log_handler.setFormatter(log_formatter)
+log.addHandler(log_handler)
+
 
 app = Flask(__name__, instance_relative_config=True, template_folder='presentation/template/')
+
+log.info("START sonoff-schema")
 
 from app.config import app_config
 config_name = os.getenv('FLASK_CONFIG')
@@ -45,9 +63,10 @@ def populate_database():
     Scheme(gid=4).save()
 
     from app.data.sonoff import Sonoff
-    Sonoff(sonoff_id="sonoff1", location="kegel", schemes=[2]).save()
-    Sonoff(sonoff_id="sonoff2", location="boom", schemes=[2, 3]).save()
-    Sonoff(sonoff_id="sonoff3", location="buiten", schemes=[1, 2]).save()
+    Sonoff().save()
+    Sonoff().save()
+    Sonoff().save()
+    Sonoff().save()
 
 
 # populate_database()
