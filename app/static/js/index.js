@@ -50,13 +50,13 @@ class TableBase {
                 this.socket.emit("json", {id: td.dataset[this.table_data.data_label], value: td.innerHTML === "AAN"})
             } else if (td.classList.contains("input-locatie")) {
                 let text = prompt("Geef een locatie");
-                this.socket.emit("json", {id: td.dataset[this.table_data.data_label], value: text})
+                if (text) this.socket.emit("json", {id: td.dataset[this.table_data.data_label], value: text})
             } else if (td.classList.contains("input-sonoff-id")) {
                 let text = prompt("Geef een sonoff id (e.g. sonoff21)");
-                this.socket.emit("json", {id: td.dataset[this.table_data.data_label], value: text})
+                if (text) this.socket.emit("json", {id: td.dataset[this.table_data.data_label], value: text})
             } else if (td.classList.contains("input-schema")) {
-                let text = prompt("Geef één of meerdere locaties, gescheiden door een komma");
-                this.socket.emit("json", {id: td.dataset[this.table_data.data_label], value: text.split(",").map(Number)})
+                let text = prompt("Geef één of meerdere schemas, gescheiden door een komma.  \n0 voor geen schema");
+                if (text !== null) this.socket.emit("json", {id: td.dataset[this.table_data.data_label], value: text.split(",").map(Number)})
             } else if (td.classList.contains("input-hour-min")) {
                 let text = prompt("Geef uur en minuut in formaat HH:MM");
                 try {
@@ -70,7 +70,7 @@ class TableBase {
                 } catch (e) {
                     this.socket.emit("json", {id: td.dataset[this.table_data.data_label], value: ""})
                 }
-            } else
+            } else if (td.classList.contains("off-on-auto"))
                 this.socket.emit("json", {id: td.dataset[this.table_data.data_label], value: td.innerHTML})
 
         })
