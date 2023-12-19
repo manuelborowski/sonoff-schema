@@ -8,9 +8,9 @@ from flask_socketio import SocketIO
 # 0.3: introduced arbitrary events to update cells
 # 0.4: added logging.  Implemented scheduler and sonoff-loop
 # 0.5: bugfix in mqtt start
+# 0.6: bugfix in mqtt start
 
-
-version = "0.5"
+version = "0.6"
 
 #  enable logging
 top_log_handle = "sonoff"

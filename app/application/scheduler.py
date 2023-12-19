@@ -107,9 +107,8 @@ def set_sonoff_state_cb(id, property, value, old_value, opaque):
 
 def scheduler_start(db):
     scheduler = threading.Thread(target=scheduler_task, args=[db])
-    scheduler.start()
     tasmota.start()
-    # tasmota.subscribe_to_switches()
+    scheduler.start()
     from app.data.sonoff import DSonoff
     DSonoff.properties.subscribe_set("active", set_sonoff_state_cb, None)
 

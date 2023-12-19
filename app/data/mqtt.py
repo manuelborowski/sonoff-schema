@@ -52,9 +52,9 @@ class Tasmota:
         self.client.on_message = self.on_message
         self.client.connect(self.app.config['MQTT_SERVER'])
         #Wait until client is connected, this takes less than a millisecond
+        self.client.loop_start()
         while self.wait_on_connect:
             time.sleep(1)
-        self.client.loop_start()
 
     def stop(self):
         self.log.info('Stop MQTT client')
