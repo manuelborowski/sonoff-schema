@@ -10,8 +10,9 @@ from flask_socketio import SocketIO
 # 0.5: bugfix in mqtt start
 # 0.6: bugfix in mqtt start
 # 0.7: esthetic updates
+# 0.8: hide index
 
-version = "0.7"
+version = "0.8"
 
 #  enable logging
 top_log_handle = "sonoff"

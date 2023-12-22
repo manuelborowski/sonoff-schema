@@ -1,5 +1,5 @@
 from flask import (Blueprint, flash, g, redirect, render_template, request, session, url_for)
-from app import socketio, version
+from app import socketio, version, app
 from flask_socketio import send
 import time, datetime
 
@@ -14,7 +14,7 @@ from app.application.scheme import AScheme
 bp = Blueprint('index', __name__,)
 
 
-@bp.route('/')
+@bp.route(f'/{app.config["INDEX_URL"]}')
 def hello():
     sonoffs = ASonoff.get_sonoffs()
     for sonoff in sonoffs:
