@@ -110,9 +110,7 @@ class TableBase {
         } else if(type === "text") {
             td.innerHTML = value;
         }
-
     }
-
 }
 
 class SonoffTable extends TableBase {

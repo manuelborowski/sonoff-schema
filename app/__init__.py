@@ -11,8 +11,9 @@ from flask_socketio import SocketIO
 # 0.6: bugfix in mqtt start
 # 0.7: esthetic updates
 # 0.8: hide index
+# 0.9: code cleanup.  Setting state of sonoff-device is commented out.
 
-version = "0.8"
+version = "0.9"
 
 #  enable logging
 top_log_handle = "sonoff"

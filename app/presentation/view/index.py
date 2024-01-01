@@ -26,7 +26,7 @@ def hello():
 @socketio.on('json', namespace="/sonoffupdate")
 def handle_json(data):
     try:
-        ASonoff.update_property(data["id"], data["value"])
+        ASonoff.set_property(data["id"], data["value"])
     except Exception as e:
         log.error(f"handle_json, sonoffupdate error, {e}")
 
@@ -41,7 +41,7 @@ ASonoff.subscribe_set_property("*", broadcast_changed_property, "sonoffupdate")
 @socketio.on('json', namespace="/schemeupdate")
 def handle_json(data):
     try:
-        AScheme.update_property(data["id"], data["value"])
+        AScheme.set_property(data["id"], data["value"])
     except Exception as e:
         log.error(f"handle_json, schemeupdate error, {e}")
 

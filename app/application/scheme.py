@@ -9,11 +9,6 @@ class AScheme():
     @classmethod
     def set_property(cls, id_code, value):
         property, id = id_code.split("-")
-        return dscheme.properties.set(id, property, value)
-
-    @classmethod
-    def update_property(cls, id_code, value):
-        property, id = id_code.split("-")
         if property in ["active", "mon", "tue", "wed", "thu", "fri", "sat", "sun"]:
             value = not value
         return dscheme.properties.set(id, property, value)

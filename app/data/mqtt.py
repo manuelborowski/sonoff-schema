@@ -72,9 +72,9 @@ class Tasmota:
 
     # warning : no protection with lock!
     def set_switch_state(self, switch, state):
-        # self.log.info("MQTT TX : switch {} to state {}".format(switch, state))
-        message = "ON" if state else "OFF"
-        self.client.publish(f'cmnd/{switch}/power', message, retain=True)
+        self.log.info("MQTT TX : switch {} to state {}".format(switch, state))
+        # message = "ON" if state else "OFF"
+        # self.client.publish(f'cmnd/{switch}/power', message, retain=True)
 
     def request_status(self, switch):
         try:
