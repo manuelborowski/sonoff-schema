@@ -59,18 +59,20 @@ class TableBase {
                 if (text !== null) this.socket.emit("json", {id: td.dataset[this.table_data.data_label], value: text.split(",").map(Number)})
             } else if (td.classList.contains("input-hour-min")) {
                 let text = prompt("Geef uur en minuut in formaat HH:MM");
-                try {
-                    let [h, m] = text.split(":");
-                    h = parseInt(h);
-                    m = parseInt(m);
-                    if (h >= 0 && h < 24 && m >= 0 && m < 60)
-                        this.socket.emit("json", {id: td.dataset[this.table_data.data_label], value: text})
-                    else
+                if (text !== null) {
+                    try {
+                        let [h, m] = text.split(":");
+                        h = parseInt(h);
+                        m = parseInt(m);
+                        if (h >= 0 && h < 24 && m >= 0 && m < 60)
+                            this.socket.emit("json", {id: td.dataset[this.table_data.data_label], value: text})
+                        else
+                            this.socket.emit("json", {id: td.dataset[this.table_data.data_label], value: ""})
+                    } catch (e) {
                         this.socket.emit("json", {id: td.dataset[this.table_data.data_label], value: ""})
-                } catch (e) {
-                    this.socket.emit("json", {id: td.dataset[this.table_data.data_label], value: ""})
+                    }
                 }
-            } else if (td.classList.contains("off-on-auto"))
+            } else if (td.classList.contains("off-on-auto") || td.classList.contains("yellow-gray-auto-man"))
                 this.socket.emit("json", {id: td.dataset[this.table_data.data_label], value: td.innerHTML})
 
         })
@@ -87,6 +89,10 @@ class TableBase {
             td.innerHTML = value ? "AAN" : "UIT";
             td.classList.remove(value ? "red-bg" : "green-bg");
             td.classList.add(value ? "green-bg" : "red-bg");
+        } else if (td.classList.contains("yellow-gray-auto-man")) {
+            td.innerHTML = value;
+            td.classList.remove("yellow-bg", "gray-bg");
+            td.classList.add(value === "AUTO" ? "yellow-bg" : "gray-bg");
         } else if (td.classList.contains("green-white")) {
             td.innerHTML = value ? "AAN" : "UIT";
             td.classList.remove(value ? "white-bg-fg" : "green-bg-fg");
@@ -104,10 +110,10 @@ class TableBase {
 
     set_cell_update(row, id, type, value) {
         const td = document.querySelector(`[data-${this.table_data.data_label}="${row}-${id}"]`);
-        if(type === "red-green-bg") {
+        if (type === "red-green-bg") {
             td.classList.remove("red-bg", "green-bg", "orange-bg");
             td.classList.add(value ? "green-bg" : "red-bg");
-        } else if(type === "text") {
+        } else if (type === "text") {
             td.innerHTML = value;
         }
     }
@@ -116,9 +122,9 @@ class TableBase {
 class SonoffTable extends TableBase {
     constructor(table) {
         const table_data = {
-            labels: ["id", "loc", "mode", "ip", "schema"],
-            properties: ["sonoff_id", "location", "mode", "ip", "schemes"],
-            types: ["input-sonoff-id", "input-locatie", "off-on-auto", "", "input-schema"],
+            labels: ["id", "loc", "status", "mode", "ip", "schema"],
+            properties: ["sonoff_id", "location", "active", "mode", "ip", "schemes"],
+            types: ["input-sonoff-id", "input-locatie", "green-red-aan-uit", "yellow-gray-auto-man", "input-schema"],
             data: sonoffs,
             html_table: table,
             data_label: "sonoff_id",
@@ -126,7 +132,7 @@ class SonoffTable extends TableBase {
         }
         super(table_data);
 
-        this.subscribe_cell_update("sonoffstate", "red-green-bg", "mode")
+        this.subscribe_cell_update("sonoffstate", "red-green-bg", "active")
         this.subscribe_cell_update("sonoffip", "text", "ip")
     }
 }

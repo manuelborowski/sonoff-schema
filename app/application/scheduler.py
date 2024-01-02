@@ -45,6 +45,7 @@ def scheduler_task(db):
     onoff_template = [["on0", True], ["off0", False], ["on1", True], ["off1", False]]
     with app.app_context():
         subscribed_sonoffs = []
+        prev_active_schemes = {}
         while True:
             try:
                 # log.info(datetime.datetime.now())
@@ -69,7 +70,7 @@ def scheduler_task(db):
                 # Store in active_schemes the action, associated with the closest scheme-time
                 now = datetime.datetime.now()
                 reference_time = f"{int(now.hour):02d}:{int(now.minute):02d}"
-                active_schemes = {} # list of schemes with a valid action (i.e. associated sonoffs must go off or on)
+                current_active_schemes = {} # list of valid schemes with, together with a state (i.e. associated sonoffs are off or on)
                 applicable_schemes = Scheme.select().where(Scheme.active==True, getattr(Scheme, days_of_week[now.weekday()]) == True) # select applicable schemes (active and current day is enabled)
                 for scheme in applicable_schemes:
                     for onoff in onoff_template:
@@ -78,16 +79,36 @@ def scheduler_task(db):
                             h, m = property.split(":")
                             property_time = f"{int(h):02d}:{int(m):02d}"
                             if property_time <= reference_time:
-                                if scheme.gid not in active_schemes or property_time > active_schemes[scheme.gid]["time"]:
-                                    active_schemes[scheme.gid] = {"time": property_time, "action": onoff[1]}
-                update_sonoffs = {} # a list of sonoffs (sonoff_id), together with an action (on or off)
-                for sonoff in enabled_sonoffs:
-                    if sonoff.mode == Sonoff.State.auto:
-                        for gid in sonoff.schemes:
-                            if gid in active_schemes:
-                                update_sonoffs[sonoff.sonoff_id] = active_schemes[gid]["action"]
-                for id, state in update_sonoffs.items():
-                    tasmota.set_switch_state(id, state)
+                                if scheme.gid not in current_active_schemes or property_time > current_active_schemes[scheme.gid]["time"]:
+                                    current_active_schemes[scheme.gid] = {"time": property_time, "action": onoff[1]}
+                    if scheme.gid not in current_active_schemes:
+                        current_active_schemes[scheme.gid] = {"time": "00:00", "action": False}
+                # consider transitions only, i.e. when action goes from True to False or vice verse.
+                current_gids = set(current_active_schemes.keys())
+                prev_gids = set(prev_active_schemes.keys())
+                # present in current, not present in prev
+                for gid in list((current_gids ^ prev_gids) & current_gids):
+                    prev_active_schemes[gid] = current_active_schemes[gid]
+                    del(current_active_schemes[gid])
+                # present in prev, not present in current
+                for gid in list((current_gids ^ prev_gids) & prev_gids):
+                    del(prev_active_schemes[gid])
+                # present in prev and current
+                for gid in list(current_gids & prev_gids):
+                    if prev_active_schemes[gid]["action"] == current_active_schemes[gid]["action"]:
+                        del(current_active_schemes[gid])
+                    else:
+                        prev_active_schemes[gid] = current_active_schemes[gid]
+
+                if current_active_schemes:
+                    update_sonoffs = {} # a list of sonoffs (sonoff_id), together with an action (on or off)
+                    for sonoff in enabled_sonoffs:
+                        if sonoff.mode == Sonoff.Mode.auto:
+                            for gid in sonoff.schemes:
+                                if gid in current_active_schemes:
+                                    update_sonoffs[sonoff.sonoff_id] = current_active_schemes[gid]["action"]
+                    for id, state in update_sonoffs.items():
+                        tasmota.set_switch_state(id, state)
                 db.close()
                 time.sleep(2)
             except Exception as e:

@@ -10,10 +10,14 @@ class ASonoff():
     def set_property(cls, id_code, value):
         property, id = id_code.split("-")
         if property == "mode":
-            next_states = {"UIT": "AAN", "AAN": "AUTO", "AUTO": "UIT"}
-            value = next_states[value]
-            if value != "AUTO":
-                dsonoff.properties.set(id, "active", value == "AAN")
+            value = Sonoff.get_next_mode(value)
+        if property == "active":
+            value = not value
+        # if property == "mode":
+        #     next_states = {"UIT": "AAN", "AAN": "AUTO", "AUTO": "UIT"}
+        #     value = next_states[value]
+        #     if value != "AUTO":
+        #         dsonoff.properties.set(id, "active", value == "AAN")
         return dsonoff.properties.set(id, property, value)
 
     @classmethod

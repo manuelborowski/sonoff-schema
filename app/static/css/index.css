@@ -29,6 +29,14 @@
     color: white;
 }
 
+.clickable-table .yellow-bg {
+    background: lightgoldenrodyellow;
+}
+
+.clickable-table .grey-bg {
+    background: lightgray;
+}
+
 
 @media screen and (min-width: 1000px) {
   .table-container {

@@ -12,8 +12,10 @@ from flask_socketio import SocketIO
 # 0.7: esthetic updates
 # 0.8: hide index
 # 0.9: code cleanup.  Setting state of sonoff-device is commented out.
+# 0.10: split mode and active so that it is possible to switch a sonoff on or off while the scheduler is active.
 
-version = "0.9"
+
+version = "0.10"
 
 #  enable logging
 top_log_handle = "sonoff"
