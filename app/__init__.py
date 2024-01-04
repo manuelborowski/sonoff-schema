@@ -14,9 +14,10 @@ from flask_socketio import SocketIO
 # 0.9: code cleanup.  Setting state of sonoff-device is commented out.
 # 0.10: split mode and active so that it is possible to switch a sonoff on or off while the scheduler is active.
 # 0.11: add favicon to git
+# 0.12: css update
 
 
-version = "0.11"
+version = "0.12"
 
 #  enable logging
 top_log_handle = "sonoff"
