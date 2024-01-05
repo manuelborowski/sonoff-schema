@@ -1,10 +1,10 @@
-from peewee import DoesNotExist
-import threading, datetime, time
+import datetime
 from app.data.sonoff import Sonoff
 from app.data.scheme import Scheme
 from app import socketio, app
 from flask_socketio import send
 from app.data.mqtt import Tasmota
+from eventlet import sleep
 
 
 #logging on file level
@@ -16,26 +16,8 @@ sonoff_sonoff_ids = {}
 sonoff_ids = {}
 currrent_sonoffs = []
 
-# called when the state of the sonoff-device changes (on or off)
-def set_sonoff_state_cb(sonoff_id, status):
-    try:
-        with app.app_context():
-            if sonoff_id in sonoff_sonoff_ids:
-                send({"id": f"sonoffstate-{sonoff_sonoff_ids[sonoff_id].id}", "value": status}, json=True, broadcast=True, namespace=f"/sonoffupdate")
-    except DoesNotExist as e:
-        return False
 
-# called when the ipaddress of the sonoff-device changes.
-def set_sonoff_ip_cb(sonoff_id, ip):
-    try:
-        with app.app_context():
-            if sonoff_id in sonoff_sonoff_ids:
-                send({"id": f"sonoffip-{sonoff_sonoff_ids[sonoff_id].id}", "value": ip}, json=True, broadcast=True, namespace=f"/sonoffupdate")
-    except DoesNotExist as e:
-        return False
-
-
-tasmota = Tasmota(app, log, set_sonoff_state_cb, set_sonoff_ip_cb)
+tasmota = Tasmota(app, log)
 
 
 def scheduler_task(db):
@@ -48,9 +30,16 @@ def scheduler_task(db):
         prev_active_schemes = {}
         while True:
             try:
-                # log.info(datetime.datetime.now())
+                messages = tasmota.get_message_queue()
+                for message in messages:
+                    type, sonoff_id, data = message["type"], message["id"], message["data"]
+                    if type == "state":
+                        # log.info(f"set state, {sonoff_id}, {data}")
+                        send({"id": f"sonoffstate-{sonoff_sonoff_ids[sonoff_id].id}", "value": data}, json=True, broadcast=True, namespace=f"/sonoffupdate")
+                    elif type == "ip":
+                        # log.info(f"set ip, {sonoff_id}, {data}")
+                        send({"id": f"sonoffip-{sonoff_sonoff_ids[sonoff_id].id}", "value": data}, json=True, broadcast=True, namespace=f"/sonoffupdate")
                 temp_sonoffs = []
-                db.connect()
                 enabled_sonoffs = Sonoff.select().where(Sonoff.sonoff_id != "") # enabled sonoffs only (sonoff_id is not empty)
                 sonoff_sonoff_ids = {s.sonoff_id: s for s in enabled_sonoffs}
                 sonoff_ids = {s.id: s for s in enabled_sonoffs}
@@ -109,8 +98,7 @@ def scheduler_task(db):
                                     update_sonoffs[sonoff.sonoff_id] = current_active_schemes[gid]["action"]
                     for id, state in update_sonoffs.items():
                         tasmota.set_switch_state(id, state)
-                db.close()
-                time.sleep(2)
+                sleep(2)
             except Exception as e:
                 log.error(f"task error, {e}")
 
@@ -121,9 +109,8 @@ def set_sonoff_state_cb(id, property, value, old_value, opaque):
 
 
 def scheduler_start(db):
-    scheduler = threading.Thread(target=scheduler_task, args=[db])
     tasmota.start()
-    scheduler.start()
+    socketio.start_background_task(target= lambda: scheduler_task(db))
     from app.data.sonoff import DSonoff
     DSonoff.properties.subscribe_set("active", set_sonoff_state_cb, None)
 

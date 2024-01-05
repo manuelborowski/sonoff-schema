@@ -1,9 +1,6 @@
 from peewee import Model
 from playhouse.shortcuts import ThreadSafeDatabaseMetadata
 from app import dbase, app
-# import sqlite3
-#
-# import click
 
 #logging on file level
 import logging
@@ -12,7 +9,7 @@ log = logging.getLogger(f"{top_log_handle}.{__name__}")
 
 @app.before_request
 def before_request():
-    dbase.connect()
+    dbase.connect(reuse_if_open=True)
 
 @app.after_request
 def after_request(response):

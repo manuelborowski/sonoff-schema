@@ -1,5 +1,5 @@
 from peewee import SqliteDatabase
-import logging, logging.handlers, os, sys
+import logging.handlers, os, sys
 from flask import Flask
 from flask_socketio import SocketIO
 
@@ -15,9 +15,10 @@ from flask_socketio import SocketIO
 # 0.10: split mode and active so that it is possible to switch a sonoff on or off while the scheduler is active.
 # 0.11: add favicon to git
 # 0.12: css update
+# 0.13: bugfixed socketio, used eventlet iso gevent
 
 
-version = "0.12"
+version = "0.13"
 
 #  enable logging
 top_log_handle = "sonoff"
@@ -54,9 +55,6 @@ dbase.close()
 
 from .presentation.view import index
 app.register_blueprint(index.bp)
-
-from .application.scheduler import scheduler_start
-scheduler_start(dbase)
 
 
 def populate_database():

@@ -124,7 +124,7 @@ class SonoffTable extends TableBase {
         const table_data = {
             labels: ["id", "loc", "status", "mode", "ip", "schema"],
             properties: ["sonoff_id", "location", "active", "mode", "ip", "schemes"],
-            types: ["input-sonoff-id", "input-locatie", "green-red-aan-uit", "yellow-gray-auto-man", "input-schema"],
+            types: ["input-sonoff-id", "input-locatie", "green-red-aan-uit", "yellow-gray-auto-man", "", "input-schema"],
             data: sonoffs,
             html_table: table,
             data_label: "sonoff_id",

@@ -1,21 +1,20 @@
 import paho.mqtt.client as mqtt
 from threading import Lock
-import time, datetime,json, random, string
+import time, json, random, string, copy
 
 
 class Tasmota:
     HB_COUNTER_RESET = 5
 
-    def __init__(self, app, log, state_cb=None, ip_cb=None):
+    def __init__(self, app, log):
         self.app = app
         self.log = log
-        self.state_cb = state_cb
-        self.ip_cb=ip_cb
         self.wait_on_connect = True
         self.switch_hb_dict = {}
         self.switch_status_dict = {}
         self.switch_ip_dict = {}
         self.switch_lock = Lock()
+        self.message_queue = []
 
     def on_connect(self, client, userdata, flags, rc):
         if rc == 0:
@@ -24,26 +23,46 @@ class Tasmota:
 
     def on_message(self, client, userdata, message):
         try:
-            self.switch_lock.acquire()
+            # self.log.info(f'on_message, {message.topic}  <>  {message.payload}')
             if message.topic.find('RESULT') > 0:
                 switch = message.topic.split('/')[1]
                 payload = json.loads(str(message.payload.decode("utf-8")))
                 if 'POWER' in payload:
                     status = True if payload['POWER'] == 'ON' else False
                     self.switch_hb_dict[switch] = Tasmota.HB_COUNTER_RESET
-                    if self.state_cb:
-                        self.state_cb(switch, status)
+                    self.push_message_on_queue({"type": "state", "id": switch, "data": status})
             if message.topic.find('STATUS5') > 0:
                 switch = message.topic.split('/')[1]
                 payload = json.loads(str(message.payload.decode("utf-8")))
                 if 'StatusNET' in payload:
                     self.switch_hb_dict[switch] = Tasmota.HB_COUNTER_RESET
-                    if self.ip_cb:
-                        self.ip_cb(switch, payload['StatusNET']['IPAddress'])
+                    self.push_message_on_queue({"type": "ip", "id": switch, "data": payload['StatusNET']['IPAddress']})
+        except Exception as e:
+            self.log.info('error : {}'.format(e))
+
+
+    def push_message_on_queue(self, message):
+        try:
+            self.switch_lock.acquire()
+            self.message_queue.append(message)
         except Exception as e:
             self.log.info('error : {}'.format(e))
         finally:
             self.switch_lock.release()
+
+
+    def get_message_queue(self):
+        queue = []
+        try:
+            self.switch_lock.acquire()
+            queue = copy.copy(self.message_queue)
+            self.message_queue = []
+        except Exception as e:
+            self.log.info('error : {}'.format(e))
+        finally:
+            self.switch_lock.release()
+            return queue
+
 
     def start(self):
         self.log.info('Start MQTT client')
@@ -61,25 +80,25 @@ class Tasmota:
         self.client.loop_stop()
 
     def subscribe_to_switch(self, switch):
-        self.log.info(f'MQTT : subscribing to switch, {switch}')
+        # self.log.info(f'MQTT : subscribing to switch, {switch}')
         self.client.subscribe(f'stat/{switch}/RESULT')
         self.client.subscribe(f'stat/{switch}/STATUS5')
 
     def unsubscribe_from_switch(self, switch):
-        self.log.info(f'MQTT : unsubscribing to switch, {switch}')
+        # self.log.info(f'MQTT : unsubscribing to switch, {switch}')
         self.client.unsubscribe(f'stat/{switch}/RESULT')
         self.client.unsubscribe(f'stat/{switch}/STATUS5')
 
-    # warning : no protection with lock!
+
     def set_switch_state(self, switch, state):
         self.log.info("MQTT TX : switch {} to state {}".format(switch, state))
         message = "ON" if state else "OFF"
         self.client.publish(f'cmnd/{switch}/power', message, retain=True)
 
+
     def request_status(self, switch):
         try:
-            self.switch_lock.acquire()
-            # self.log.info(f"MQTT request state : switch {switch}")
+            self.log.info(f"MQTT request state : switch {switch}")
             self.client.publish(f'cmnd/{switch}/status', 5, retain=False)
             if switch in self.switch_hb_dict:
                 self.switch_hb_dict[switch] -= 1
@@ -91,6 +110,4 @@ class Tasmota:
                 self.switch_hb_dict[switch] = Tasmota.HB_COUNTER_RESET
         except Exception as e:
             self.log.info('error : {}'.format(e))
-        finally:
-            self.switch_lock.release()
 
