@@ -29,17 +29,19 @@ class TableBase {
 
         this.table_data = table_data;
         this.socket = io("/" + table_data.sio_namespace);
-        this.extra_cell_updates = {}
+        this.misc_cell_updates = {}
 
         // Receive table update events from server
         this.socket.on("json", (data) => {
             const td = document.querySelector(`[data-${this.table_data.data_label}="${data.id}"]`);
             if (td)
+                // data.id maps 101 with cell-id (e.g. id = active)
                 this.set_cell_content_bg(td, data.value);
-            else if (this.extra_cell_updates) {
+            else if (this.misc_cell_updates) {
+                // a miscellaneous event is connected with a cell (e.g. sonoffactive)
                 const [event, id] = data.id.split("-");
-                if (this.extra_cell_updates[event]) {
-                    this.set_cell_update(this.extra_cell_updates[event].row, id, this.extra_cell_updates[event].type, data.value);
+                if (this.misc_cell_updates[event]) {
+                    this.misc_cell_update(this.misc_cell_updates[event].row, id, this.misc_cell_updates[event].type, data.value);
                 }
             }
         });
@@ -101,14 +103,14 @@ class TableBase {
             td.innerHTML = value;
     }
 
-    // event: arbitrary event
+    // event: misc event
     // type: what needs to be done when the event is received
     // row: apply on what row
-    subscribe_cell_update(event, type, row) {
-        this.extra_cell_updates[event] = {type, row};
+    subscribe_misc_cell_update(event, type, row) {
+        this.misc_cell_updates[event] = {type, row};
     }
 
-    set_cell_update(row, id, type, value) {
+    misc_cell_update(row, id, type, value) {
         const td = document.querySelector(`[data-${this.table_data.data_label}="${row}-${id}"]`);
         if (type === "red-green-bg") {
             td.classList.remove("red-bg", "green-bg", "orange-bg");
@@ -131,9 +133,7 @@ class SonoffTable extends TableBase {
             sio_namespace: "sonoffupdate",
         }
         super(table_data);
-
-        this.subscribe_cell_update("sonoffstate", "red-green-bg", "active")
-        this.subscribe_cell_update("sonoffip", "text", "ip")
+        this.subscribe_misc_cell_update("sonoffstate", "red-green-bg", "active")
     }
 }
 

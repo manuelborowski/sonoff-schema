@@ -1,5 +1,5 @@
 import datetime
-from app.data.sonoff import Sonoff
+from app.data.sonoff import Sonoff, dsonoff
 from app.data.scheme import Scheme
 from app import socketio, app
 from flask_socketio import send
@@ -30,19 +30,19 @@ def scheduler_task(db):
         prev_active_schemes = {}
         while True:
             try:
-                messages = tasmota.get_message_queue()
-                for message in messages:
-                    type, sonoff_id, data = message["type"], message["id"], message["data"]
-                    if type == "state":
-                        # log.info(f"set state, {sonoff_id}, {data}")
-                        send({"id": f"sonoffstate-{sonoff_sonoff_ids[sonoff_id].id}", "value": data}, json=True, broadcast=True, namespace=f"/sonoffupdate")
-                    elif type == "ip":
-                        # log.info(f"set ip, {sonoff_id}, {data}")
-                        send({"id": f"sonoffip-{sonoff_sonoff_ids[sonoff_id].id}", "value": data}, json=True, broadcast=True, namespace=f"/sonoffupdate")
                 temp_sonoffs = []
                 enabled_sonoffs = Sonoff.select().where(Sonoff.sonoff_id != "") # enabled sonoffs only (sonoff_id is not empty)
                 sonoff_sonoff_ids = {s.sonoff_id: s for s in enabled_sonoffs}
                 sonoff_ids = {s.id: s for s in enabled_sonoffs}
+                messages = tasmota.get_message_queue()
+                for message in messages:
+                    type, sonoff_id, data = message["type"], message["id"], message["data"]
+                    if type == "state":
+                        send({"id": f"sonoffstate-{sonoff_sonoff_ids[sonoff_id].id}", "value": data}, json=True, broadcast=True, namespace=f"/sonoffupdate")
+                    elif type == "action":
+                        dsonoff.properties.set(sonoff_sonoff_ids[sonoff_id].id, "active", not sonoff_sonoff_ids[sonoff_id].active)
+                    elif type == "ip":
+                        send({"id": f"ip-{sonoff_sonoff_ids[sonoff_id].id}", "value": data}, json=True, broadcast=True, namespace=f"/sonoffupdate")
                 for sonoff in enabled_sonoffs:
                     if sonoff.sonoff_id not in subscribed_sonoffs:
                         tasmota.subscribe_to_switch(sonoff.sonoff_id)
@@ -96,15 +96,15 @@ def scheduler_task(db):
                             for gid in sonoff.schemes:
                                 if gid in current_active_schemes:
                                     update_sonoffs[sonoff.sonoff_id] = current_active_schemes[gid]["action"]
-                    for id, state in update_sonoffs.items():
-                        tasmota.set_switch_state(id, state)
+                    for sonoff_id, state in update_sonoffs.items():
+                        dsonoff.properties.set(sonoff_sonoff_ids[sonoff_id].id, "active", state)
                 sleep(2)
             except Exception as e:
                 log.error(f"task error, {e}")
 
 
 def set_sonoff_state_cb(id, property, value, old_value, opaque):
-    log.info(f"Set switch {id}, property {property} to {value}")
+    # log.info(f"Set switch {id}, property {property} to {value}")
     tasmota.set_switch_state(sonoff_ids[id].sonoff_id, value)
 
 

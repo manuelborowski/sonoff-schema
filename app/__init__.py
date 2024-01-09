@@ -16,9 +16,10 @@ from flask_socketio import SocketIO
 # 0.11: add favicon to git
 # 0.12: css update
 # 0.13: bugfixed socketio, used eventlet iso gevent
+# 0.14: decoupled sonoff button from relay.  Pushing the button on the sonoff, pushing the button in the GUI or switching in a scheme (if appropriate) will toggle the 'active'-property.
 
 
-version = "0.13"
+version = "0.14"
 
 #  enable logging
 top_log_handle = "sonoff"

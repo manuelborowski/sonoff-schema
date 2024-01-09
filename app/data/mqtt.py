@@ -14,7 +14,7 @@ class Tasmota:
         self.switch_status_dict = {}
         self.switch_ip_dict = {}
         self.switch_lock = Lock()
-        self.message_queue = []
+        self.message_queue = {}
 
     def on_connect(self, client, userdata, flags, rc):
         if rc == 0:
@@ -28,9 +28,17 @@ class Tasmota:
                 switch = message.topic.split('/')[1]
                 payload = json.loads(str(message.payload.decode("utf-8")))
                 if 'POWER' in payload:
+                    # self.log.info(f'on_message, {message.topic}  <>  {message.payload}')
                     status = True if payload['POWER'] == 'ON' else False
                     self.switch_hb_dict[switch] = Tasmota.HB_COUNTER_RESET
                     self.push_message_on_queue({"type": "state", "id": switch, "data": status})
+                # On sonoff/tasmota console: setoption73 1
+                # This will decouple the button from the relay and pushing the button sends the mqtt message below
+                if 'Button1' in payload:
+                    # self.log.info(f'on_message, {message.topic}  <>  {message.payload}')
+                    action = payload["Button1"]["Action"]
+                    self.switch_hb_dict[switch] = Tasmota.HB_COUNTER_RESET
+                    self.push_message_on_queue({"type": "action", "id": switch, "data": action})
             if message.topic.find('STATUS5') > 0:
                 switch = message.topic.split('/')[1]
                 payload = json.loads(str(message.payload.decode("utf-8")))
@@ -43,8 +51,12 @@ class Tasmota:
 
     def push_message_on_queue(self, message):
         try:
+
             self.switch_lock.acquire()
-            self.message_queue.append(message)
+            if message["type"] == "state":
+                print(message)
+            message_key = "-".join([message["id"], message["type"]])
+            self.message_queue[message_key] = message
         except Exception as e:
             self.log.info('error : {}'.format(e))
         finally:
@@ -52,16 +64,17 @@ class Tasmota:
 
 
     def get_message_queue(self):
-        queue = []
+        out = []
         try:
             self.switch_lock.acquire()
-            queue = copy.copy(self.message_queue)
-            self.message_queue = []
+            for _, q in self.message_queue.items():
+                out.append(q)
+            self.message_queue = {}
         except Exception as e:
             self.log.info('error : {}'.format(e))
         finally:
             self.switch_lock.release()
-            return queue
+            return out
 
 
     def start(self):
@@ -98,14 +111,13 @@ class Tasmota:
 
     def request_status(self, switch):
         try:
-            self.log.info(f"MQTT request state : switch {switch}")
+            # self.log.info(f"MQTT request state : switch {switch}")
             self.client.publish(f'cmnd/{switch}/status', 5, retain=False)
             if switch in self.switch_hb_dict:
                 self.switch_hb_dict[switch] -= 1
                 if self.switch_hb_dict[switch] < 1:
                     del(self.switch_hb_dict[switch])
-                    if self.ip_cb:
-                        self.ip_cb(switch, "0.0.0.0")
+                    self.push_message_on_queue({"type": "ip", "id": switch, "data": "0.0.0.0"})
             else:
                 self.switch_hb_dict[switch] = Tasmota.HB_COUNTER_RESET
         except Exception as e:
