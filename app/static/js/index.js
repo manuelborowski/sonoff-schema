@@ -3,7 +3,30 @@ window.addEventListener('DOMContentLoaded', () => {
     const schemeTable = document.querySelector(".scheme-table");
     if (sonoffTable) new SonoffTable(sonoffTable, tableRows);
     if (schemeTable) new SchemeTable(schemeTable, tableRows);
+
+    const logPanel = document.querySelector("#log-panel");
+    if (logPanel) {
+        const menu = document.querySelector("#log-date-menu");
+        const button = document.querySelector("#log-date-button");
+        button.addEventListener("click", () => {
+            menu.style.removeProperty("inset");
+            menu.style.removeProperty("margin");
+        });
+        logPanel.addEventListener("contextmenu", event => {
+            if (!menu.contains(event.target)) openContextMenu(menu, event);
+        });
+    }
 });
+
+
+function openContextMenu(menu, event) {
+    event.preventDefault();
+    if (!menu.matches(":popover-open")) menu.showPopover();
+    const x = Math.max(0, Math.min(event.clientX, window.innerWidth - menu.offsetWidth));
+    const y = Math.max(0, Math.min(event.clientY, window.innerHeight - menu.offsetHeight));
+    menu.style.margin = "0";
+    menu.style.inset = `${y}px auto auto ${x}px`;
+}
 
 
 class TableBase {
@@ -175,14 +198,9 @@ class SonoffTable extends TableBase {
             selectDevice();
         });
         table.addEventListener("contextmenu", event => {
-            event.preventDefault();
             const cell = event.target.closest("td[data-sonoff_id]");
             selectDevice(cell?.dataset.sonoff_id.split("-")[1]);
-            if (!menu.matches(":popover-open")) menu.showPopover();
-            const x = Math.max(0, Math.min(event.clientX, window.innerWidth - menu.offsetWidth));
-            const y = Math.max(0, Math.min(event.clientY, window.innerHeight - menu.offsetHeight));
-            menu.style.margin = "0";
-            menu.style.inset = `${y}px auto auto ${x}px`;
+            openContextMenu(menu, event);
         });
         select.addEventListener("change", () => { deleteButton.disabled = !select.value; });
 

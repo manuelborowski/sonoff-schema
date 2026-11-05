@@ -1,7 +1,7 @@
 from flask import (Blueprint, flash, g, redirect, render_template, request, session, url_for)
-from app import socketio, version, app
+from app import LOG_FILENAME, log_handler, socketio, version, app
 from flask_socketio import send
-import time, datetime
+import datetime
 
 #logging on file level
 import logging
@@ -10,6 +10,7 @@ log = logging.getLogger(f"{top_log_handle}.{__name__}")
 
 from app.application.sonoff import ASonoff
 from app.application.scheme import AScheme
+from app.data.logs import read_entries, read_switch_history
 
 bp = Blueprint('index', __name__,)
 index_url = f'/{app.config["INDEX_URL"]}'
@@ -26,6 +27,41 @@ def hello():
 @bp.route(f'{index_url.rstrip("/")}/schemes')
 def schemes():
     return render_template("index.html", page="schemes", rows=AScheme.get_schemes(), version=version)
+
+
+@bp.route(f'{index_url.rstrip("/")}/logging')
+def logging_page():
+    today = datetime.date.today()
+    last_month = today.replace(day=1) - datetime.timedelta(days=1)
+    default_start = last_month.replace(day=min(today.day, last_month.day))
+    date_from = request.args.get("from", default_start.isoformat())
+    date_until = request.args.get("until", today.isoformat())
+    try:
+        start = datetime.date.fromisoformat(date_from)
+        end = datetime.date.fromisoformat(date_until)
+        if start > end:
+            raise ValueError
+    except ValueError:
+        return render_template("index.html", page="logging", version=version, date_from=date_from, date_until=date_until, date_error=True), 400
+
+    entries = read_entries(LOG_FILENAME, log_handler.backupCount, start, end)
+    return render_template("index.html", page="logging", version=version, date_from=start.isoformat(), date_until=end.isoformat(), entries=entries)
+
+
+@bp.route(f'{index_url.rstrip("/")}/history')
+def history():
+    now = datetime.datetime.now()
+    today = now.date()
+    week = min(max(request.args.get("week", 0, type=int), 0), (today.toordinal() - 7) // 7)
+    last_day = today - datetime.timedelta(weeks=week)
+    first_day = last_day - datetime.timedelta(days=6)
+    start = datetime.datetime.combine(first_day, datetime.time.min)
+    end = start + datetime.timedelta(days=7)
+    device_ids = (row["sonoff_id"] for row in ASonoff.get_sonoffs())
+    timelines, has_older = read_switch_history(LOG_FILENAME, log_handler.backupCount, start, end, device_ids)
+    duration = (end - start).total_seconds()
+    history_data = {"start": first_day.isoformat(), "duration": duration, "knownUntil": min(duration, (now - start).total_seconds()), "devices": timelines}
+    return render_template("index.html", page="history", version=version, first_day=first_day, last_day=last_day, week=week, has_older=has_older, history=history_data)
 
 
 @bp.route(f'{index_url.rstrip("/")}/devices', methods=["POST", "DELETE"])

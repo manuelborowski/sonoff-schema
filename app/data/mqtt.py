@@ -53,8 +53,6 @@ class Tasmota:
         try:
 
             self.switch_lock.acquire()
-            if message["type"] == "state":
-                print(message)
             message_key = "-".join([message["id"], message["type"]])
             self.message_queue[message_key] = message
         except Exception as e:

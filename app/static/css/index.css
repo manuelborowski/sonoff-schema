@@ -43,13 +43,118 @@
     max-width: 60rem;
 }
 
-#device-actions {
+#device-actions,
+#log-date-menu {
     width: min(20rem, calc(100% - 1rem));
     max-height: calc(100dvh - 1rem);
     overflow: auto;
 }
 
+#log-panel {
+    max-width: 80rem;
+    margin: 0 auto;
+}
+
+.history-only {
+    display: none;
+}
+
+@media (max-width: 767px), (hover: none) and (pointer: coarse) {
+    .history-only {
+        display: block;
+    }
+
+    .history-desktop-note {
+        display: none;
+    }
+}
+
+.history-navigation {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    margin-bottom: 0.5rem;
+    text-align: center;
+}
+
+#history-plot svg {
+    display: block;
+    width: 100%;
+    touch-action: pan-y;
+    user-select: none;
+    font-size: 11px;
+}
+
+.log-table {
+    width: 100%;
+    table-layout: fixed;
+    border-collapse: collapse;
+}
+
+.log-table th:first-child {
+    width: 12rem;
+}
+
+.log-table th:nth-child(2) {
+    width: 6rem;
+}
+
+.log-table th.log-source {
+    width: clamp(12rem, 25vw, 20rem);
+}
+
+.log-table th,
+.log-table td {
+    height: auto;
+    padding: 0.5rem;
+    border: 0;
+    border-radius: 0;
+    font-size: 0.875rem;
+    text-align: left;
+    vertical-align: top;
+    overflow-wrap: anywhere;
+}
+
+.log-table td {
+    background: transparent;
+    border-bottom: 1px solid #dee2e6;
+    font-weight: normal;
+}
+
+.log-table td:first-child {
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
+}
+
+.log-table .log-message {
+    white-space: pre-wrap;
+}
+
 @media (max-width: 767px) {
+    .log-table .log-source,
+    .log-milliseconds {
+        display: none;
+    }
+
+    .log-table th,
+    .log-table td {
+        padding: 0.35rem 0.25rem;
+        font-size: 0.75rem;
+    }
+
+    .log-table th:first-child {
+        width: 5.5rem;
+    }
+
+    .log-table th:nth-child(2) {
+        width: 4rem;
+    }
+
+    .log-table td:first-child {
+        white-space: normal;
+    }
+
     .sonoff-table,
     .scheme-table {
         table-layout: fixed;
