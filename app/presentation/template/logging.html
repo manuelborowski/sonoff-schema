@@ -1,0 +1,36 @@
+<section id="log-panel" aria-label="Logging">
+    <div class="text-center mb-3">
+        <button type="button" id="log-date-button" class="btn btn-outline-secondary btn-sm" popovertarget="log-date-menu">Datumbereik kiezen</button>
+        <p class="small mt-2 mb-0">{{ date_from }} t/m {{ date_until }}</p>
+    </div>
+    <div id="log-date-menu" class="p-3 border rounded shadow" popover>
+        <form method="get" action="{{ url_for('index.logging_page') }}">
+            <label for="log-from" class="form-label">Van</label>
+            <input id="log-from" class="form-control mb-2" type="date" name="from" value="{{ date_from }}" required>
+            <label for="log-until" class="form-label">Tot en met</label>
+            <input id="log-until" class="form-control mb-3" type="date" name="until" value="{{ date_until }}" required>
+            <button type="submit" class="btn btn-primary w-100">Toepassen</button>
+        </form>
+    </div>
+    {% if date_error %}
+    <p class="text-center" role="alert">Kies een geldige begin- en einddatum. De einddatum mag niet vóór de begindatum liggen.</p>
+    {% elif entries %}
+    <table class="log-table" aria-label="Logboek">
+        <thead>
+            <tr><th scope="col">Tijdstip</th><th scope="col">Niveau</th><th scope="col" class="log-source">Bron</th><th scope="col">Bericht</th></tr>
+        </thead>
+        <tbody>
+            {% for entry in entries %}
+            <tr>
+                <td>{{ entry.timestamp }}<span class="log-milliseconds">{{ entry.milliseconds }}</span></td>
+                <td>{{ entry.level }}</td>
+                <td class="log-source">{{ entry.source }}</td>
+                <td class="log-message">{{ entry.message }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <p class="text-center">Geen logberichten in dit datumbereik.</p>
+    {% endif %}
+</section>

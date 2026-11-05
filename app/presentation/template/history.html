@@ -1,0 +1,25 @@
+<p class="history-desktop-note text-center">History is beschikbaar op mobiele schermen.</p>
+<section class="history-only" aria-label="History">
+    <div class="history-navigation">
+        {% if has_older %}
+        <a class="btn btn-outline-secondary" href="{{ url_for('index.history', week=week + 1) }}" aria-label="Vorige week">←</a>
+        {% else %}
+        <button class="btn btn-outline-secondary" type="button" aria-label="Vorige week" disabled>←</button>
+        {% endif %}
+        <strong>{{ first_day.strftime('%d/%m/%Y') }} – {{ last_day.strftime('%d/%m/%Y') }}</strong>
+        {% if week %}
+        <a class="btn btn-outline-secondary" href="{{ url_for('index.history', week=week - 1) }}" aria-label="Volgende week">→</a>
+        {% else %}
+        <button class="btn btn-outline-secondary" type="button" aria-label="Volgende week" disabled>→</button>
+        {% endif %}
+    </div>
+    {% if history.devices %}
+    <p class="text-center small mb-2">Hoog = aan · laag = uit · leeg = onbekend</p>
+    <div id="history-plot">
+        <svg role="img" aria-label="Aan- en uitcommando’s per apparaat. Raak de grafiek aan en sleep om het tijdstip te bekijken."></svg>
+    </div>
+    <script id="history-data" type="application/json">{{ history | tojson }}</script>
+    {% else %}
+    <p class="text-center">Geen apparaatgegevens gevonden.</p>
+    {% endif %}
+</section>

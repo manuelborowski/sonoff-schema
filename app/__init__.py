@@ -20,8 +20,9 @@ from flask_socketio import SocketIO
 # 0.14: decoupled sonoff button from relay.  Pushing the button on the sonoff, pushing the button in the GUI or switching in a scheme (if appropriate) will toggle the 'active'-property.
 # 0.15: update frontend
 # 0.16: add logging and history page
+# 0.17: add missing files
 
-version = "0.16"
+version = "0.17"
 
 #  enable logging
 top_log_handle = "sonoff"
