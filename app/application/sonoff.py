@@ -1,9 +1,22 @@
+from app import dbase
 from app.data.sonoff import Sonoff, dsonoff
 
 class ASonoff():
     @classmethod
     def get_sonoffs(cls):
         return [ r for r in Sonoff.select().dicts()]
+
+    @classmethod
+    def add_device(cls, sonoff_id):
+        with dbase.atomic("IMMEDIATE"):
+            if Sonoff.select().where(Sonoff.sonoff_id == sonoff_id).exists():
+                return False
+            Sonoff.create(sonoff_id=sonoff_id, schemes=[])
+        return True
+
+    @classmethod
+    def delete_device(cls, device_id, sonoff_id):
+        return Sonoff.delete().where(Sonoff.id == device_id, Sonoff.sonoff_id == sonoff_id).execute() == 1
 
     # depending on the property and current value, calculate the new value
     @classmethod

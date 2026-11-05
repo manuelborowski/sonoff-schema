@@ -37,12 +37,15 @@ def scheduler_task(db):
                 messages = tasmota.get_message_queue()
                 for message in messages:
                     type, sonoff_id, data = message["type"], message["id"], message["data"]
+                    sonoff = sonoff_sonoff_ids.get(sonoff_id)
+                    if sonoff is None:
+                        continue
                     if type == "state":
-                        send({"id": f"sonoffstate-{sonoff_sonoff_ids[sonoff_id].id}", "value": data}, json=True, broadcast=True, namespace=f"/sonoffupdate")
+                        send({"id": f"sonoffstate-{sonoff.id}", "value": data}, json=True, broadcast=True, namespace=f"/sonoffupdate")
                     elif type == "action":
-                        dsonoff.properties.set(sonoff_sonoff_ids[sonoff_id].id, "active", not sonoff_sonoff_ids[sonoff_id].active)
+                        dsonoff.properties.set(sonoff.id, "active", not sonoff.active)
                     elif type == "ip":
-                        send({"id": f"ip-{sonoff_sonoff_ids[sonoff_id].id}", "value": data}, json=True, broadcast=True, namespace=f"/sonoffupdate")
+                        send({"id": f"ip-{sonoff.id}", "value": data}, json=True, broadcast=True, namespace=f"/sonoffupdate")
                 for sonoff in enabled_sonoffs:
                     if sonoff.sonoff_id not in subscribed_sonoffs:
                         tasmota.subscribe_to_switch(sonoff.sonoff_id)

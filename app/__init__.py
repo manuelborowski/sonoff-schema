@@ -1,5 +1,6 @@
 from peewee import SqliteDatabase
-import logging.handlers, os, sys
+import logging.handlers, os
+from pathlib import Path
 from flask import Flask
 from flask_socketio import SocketIO
 
@@ -17,14 +18,15 @@ from flask_socketio import SocketIO
 # 0.12: css update
 # 0.13: bugfixed socketio, used eventlet iso gevent
 # 0.14: decoupled sonoff button from relay.  Pushing the button on the sonoff, pushing the button in the GUI or switching in a scheme (if appropriate) will toggle the 'active'-property.
+# 0.15: update frontend
 
-
-version = "0.14"
+version = "0.15"
 
 #  enable logging
 top_log_handle = "sonoff"
 log = logging.getLogger(f"{top_log_handle}.{__name__}")
-LOG_FILENAME = os.path.join(sys.path[0], f'app/static/log/sonoff.txt')
+LOG_FILENAME = Path(__file__).resolve().parents[1] / 'log' / 'sonoff.txt'
+LOG_FILENAME.parent.mkdir(parents=True, exist_ok=True)
 log_level = getattr(logging, 'INFO')
 log.setLevel(log_level)
 log_handler = logging.handlers.RotatingFileHandler(LOG_FILENAME, maxBytes=1024 * 1024, backupCount=20)
@@ -45,36 +47,22 @@ app.config.from_pyfile('config.py')
 
 
 app.config.from_mapping(DATABASE=os.path.join(app.instance_path, app.config["DATABASE_FILE"]),)
-socketio = SocketIO(app, async_mode=app.config['SOCKETIO_ASYNC_MODE'], cors_allowed_origins=app.config['SOCKETIO_CORS_ALLOWED_ORIGIN'])
-
-# from app.data import db
-# db.init_app(app)
+# socketio = SocketIO(app, async_mode=app.config['SOCKETIO_ASYNC_MODE'], cors_allowed_origins=app.config['SOCKETIO_CORS_ALLOWED_ORIGIN'])
+socketio = SocketIO(app, async_mode=app.config['SOCKETIO_ASYNC_MODE'])
 
 dbase = SqliteDatabase(app.config["DATABASE"])
-dbase.close()
-# import app.data
+
+from .data.scheme import Scheme
+from .data.sonoff import Sonoff
+
+with dbase.connection_context(), dbase.atomic("IMMEDIATE"):
+    if not Sonoff.table_exists():
+        Sonoff.create_table()
+        Sonoff.insert_many([{"schemes": []} for _ in range(4)]).execute()
+    if not Scheme.table_exists():
+        Scheme.create_table()
+        Scheme.insert_many([{"gid": gid} for gid in range(1, 5) for _ in range(2)]).execute()
 
 from .presentation.view import index
 app.register_blueprint(index.bp)
-
-
-def populate_database():
-    from app.data.scheme import Scheme
-    Scheme(gid=1).save()
-    Scheme(gid=1).save()
-    Scheme(gid=2).save()
-    Scheme(gid=2).save()
-    Scheme(gid=3).save()
-    Scheme(gid=3).save()
-    Scheme(gid=4).save()
-    Scheme(gid=4).save()
-
-    from app.data.sonoff import Sonoff
-    Sonoff().save()
-    Sonoff().save()
-    Sonoff().save()
-    Sonoff().save()
-
-
-# populate_database()
 

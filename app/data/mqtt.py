@@ -16,8 +16,8 @@ class Tasmota:
         self.switch_lock = Lock()
         self.message_queue = {}
 
-    def on_connect(self, client, userdata, flags, rc):
-        if rc == 0:
+    def on_connect(self, client, userdata, flags, reason_code, properties):
+        if reason_code == 0:
             self.log.info('MQTT client connected')
             self.wait_on_connect = False
 
@@ -74,13 +74,14 @@ class Tasmota:
             self.log.info('error : {}'.format(e))
         finally:
             self.switch_lock.release()
-            return out
+        return out
 
 
     def start(self):
         self.log.info('Start MQTT client')
-        self.client = mqtt.Client(f'sonoff-{"".join(random.choices(string.ascii_uppercase + string.digits, k=10))}')
-        self.client.on_connect=self.on_connect
+        client_id = f'sonoff-{"".join(random.choices(string.ascii_uppercase + string.digits, k=10))}'
+        self.client = mqtt.Client(callback_api_version=mqtt.CallbackAPIVersion.VERSION2, client_id=client_id)
+        self.client.on_connect = self.on_connect
         self.client.on_message = self.on_message
         self.client.connect(self.app.config['MQTT_SERVER'])
         #Wait until client is connected, this takes less than a millisecond
