@@ -1,6 +1,5 @@
 from flask import (Blueprint, flash, g, redirect, render_template, request, session, url_for)
 from app import LOG_FILENAME, log_handler, socketio, version, app
-from flask_socketio import send
 import datetime
 
 #logging on file level
@@ -96,7 +95,7 @@ def handle_json(data):
 
 
 def broadcast_changed_property(id, property, value, old_value, opaque):
-    send({"id": f"{property}-{id}", "value": value}, json=True, broadcast=True, namespace=f"/{opaque}")
+    socketio.send({"id": f"{property}-{id}", "value": value}, json=True, namespace=f"/{opaque}")
 
 
 ASonoff.subscribe_set_property("*", broadcast_changed_property, "sonoffupdate")

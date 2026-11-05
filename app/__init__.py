@@ -21,8 +21,9 @@ from flask_socketio import SocketIO
 # 0.15: update frontend
 # 0.16: add logging and history page
 # 0.17: add missing files
+# 0.18: update scheduler
 
-version = "0.17"
+version = "0.18"
 
 #  enable logging
 top_log_handle = "sonoff"
